@@ -1,0 +1,1940 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sanag OTA Tool - Web版</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        
+        .card-title {
+            font-size: 1.3em;
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .card-title .icon {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 50%;
+            color: white;
+            font-size: 14px;
+        }
+        
+        /* 流程步骤 */
+        .flow-steps {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            position: relative;
+        }
+        
+        .flow-steps::before {
+            content: '';
+            position: absolute;
+            top: 25px;
+            left: 50px;
+            right: 50px;
+            height: 3px;
+            background: #e0e0e0;
+            z-index: 0;
+        }
+        
+        .step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+            flex: 1;
+        }
+        
+        .step-circle {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 18px;
+            transition: all 0.3s ease;
+            margin-bottom: 10px;
+        }
+        
+        .step.active .step-circle {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.5);
+            transform: scale(1.1);
+        }
+        
+        .step.completed .step-circle {
+            background: #4CAF50;
+        }
+        
+        .step.error .step-circle {
+            background: #f44336;
+        }
+        
+        .step-label {
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+        }
+        
+        .step.active .step-label {
+            color: #667eea;
+            font-weight: bold;
+        }
+        
+        /* 设备信息 */
+        .device-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .device-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+        }
+        
+        .device-details {
+            flex: 1;
+        }
+        
+        .device-name {
+            font-weight: bold;
+            color: #333;
+            font-size: 1.1em;
+        }
+        
+        .device-status {
+            font-size: 0.9em;
+            color: #666;
+        }
+        
+        .connection-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .connection-badge.disconnected {
+            background: #ffebee;
+            color: #c62828;
+        }
+        
+        .connection-badge.connected {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        
+        /* 按钮样式 */
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #f44336, #d32f2f);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        /* 输入框 */
+        .input-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .input-group label {
+            min-width: 100px;
+            color: #333;
+            font-weight: 500;
+        }
+        
+        .input-group input {
+            flex: 1;
+            padding: 10px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        /* 文件选择 */
+        .file-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .file-input-wrapper input[type="file"] {
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            cursor: pointer;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .file-info {
+            flex: 1;
+            padding: 12px 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .file-icon {
+            font-size: 24px;
+        }
+        
+        .file-details {
+            flex: 1;
+        }
+        
+        .file-name {
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .file-size {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        /* 进度条 */
+        .progress-container {
+            margin: 20px 0;
+        }
+        
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        
+        .progress-text {
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .progress-percent {
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .progress-bar {
+            height: 20px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 10px;
+            transition: width 0.3s ease;
+            position: relative;
+        }
+        
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(
+                90deg,
+                transparent,
+                rgba(255,255,255,0.3),
+                transparent
+            );
+            animation: shimmer 1.5s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        /* 状态消息 */
+        .status-message {
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .status-message.info {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+        
+        .status-message.success {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        
+        .status-message.error {
+            background: #ffebee;
+            color: #c62828;
+        }
+        
+        .status-message.warning {
+            background: #fff3e0;
+            color: #e65100;
+        }
+        
+        /* 日志 */
+        .log-container {
+            max-height: 250px;
+            overflow-y: auto;
+            background: #1e1e1e;
+            border-radius: 10px;
+            padding: 15px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 13px;
+        }
+        
+        .log-entry {
+            margin-bottom: 5px;
+            line-height: 1.5;
+        }
+        
+        .log-time {
+            color: #6a9955;
+        }
+        
+        .log-info {
+            color: #9cdcfe;
+        }
+        
+        .log-success {
+            color: #4ec9b0;
+        }
+        
+        .log-error {
+            color: #f14c4c;
+        }
+        
+        .log-warning {
+            color: #cca700;
+        }
+        
+        /* 兼容性提示 */
+        .compatibility-notice {
+            background: #fff3e0;
+            border: 1px solid #ffb74d;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .compatibility-notice.show {
+            display: block;
+        }
+        
+        /* 响应式 */
+        @media (max-width: 600px) {
+            .flow-steps {
+                flex-wrap: wrap;
+                gap: 15px;
+            }
+            
+            .flow-steps::before {
+                display: none;
+            }
+            
+            .step {
+                flex: 0 0 calc(33.333% - 10px);
+            }
+            
+            .btn-group {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+        
+        /* 加载动画 */
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* 版本信息显示 */
+        .version-display {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 15px;
+        }
+        
+        .version-item {
+            flex: 1;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .version-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .version-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        /* 统计信息 */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .stat-item {
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔊 Sanag OTA Tool</h1>
+            <p>基于Web Bluetooth的固件升级工具</p>
+        </div>
+        
+        <!-- 兼容性提示 -->
+        <div id="compatibilityNotice" class="card" style="background: #fff3e0; border: 2px solid #ffb74d;">
+            <div id="compatibilityContent">
+                <strong>⚠️ 检测浏览器兼容性中...</strong>
+            </div>
+        </div>
+        
+        <!-- 流程步骤 -->
+        <div class="card">
+            <div class="card-title">
+                <span class="icon">📍</span>
+                升级流程
+            </div>
+            <div class="flow-steps">
+                <div class="step" id="step1">
+                    <div class="step-circle">1</div>
+                    <div class="step-label">连接设备</div>
+                </div>
+                <div class="step" id="step2">
+                    <div class="step-circle">2</div>
+                    <div class="step-label">检查条件</div>
+                </div>
+                <div class="step" id="step3">
+                    <div class="step-circle">3</div>
+                    <div class="step-label">传输固件</div>
+                </div>
+                <div class="step" id="step4">
+                    <div class="step-circle">4</div>
+                    <div class="step-label">执行升级</div>
+                </div>
+                <div class="step" id="step5">
+                    <div class="step-circle">5</div>
+                    <div class="step-label">完成</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 设备连接 -->
+        <div class="card">
+            <div class="card-title">
+                <span class="icon">📱</span>
+                设备连接
+            </div>
+            
+            <div class="device-info" id="deviceInfo" style="display: none;">
+                <div class="device-icon">🎧</div>
+                <div class="device-details">
+                    <div class="device-name" id="deviceName">未连接</div>
+                    <div class="device-status" id="deviceStatus">点击下方按钮连接设备</div>
+                </div>
+                <span class="connection-badge disconnected" id="connectionBadge">未连接</span>
+            </div>
+            
+            <!-- 扫描选项 -->
+            <div style="margin-bottom: 15px; padding: 15px; background: #f8f9fa; border-radius: 10px;">
+                <div style="margin-bottom: 10px; font-weight: 500; color: #333;">扫描选项:</div>
+                <div style="display: flex; gap: 15px; flex-wrap: wrap; align-items: center;">
+                    <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                        <input type="radio" name="scanMode" value="all" checked onchange="updateScanOptions()">
+                        <span>扫描所有设备</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                        <input type="radio" name="scanMode" value="name" onchange="updateScanOptions()">
+                        <span>按名称过滤</span>
+                    </label>
+                    <input type="text" id="deviceNameFilter" placeholder="输入设备名称前缀，如: Sanag" 
+                           style="padding: 8px 12px; border: 2px solid #e0e0e0; border-radius: 6px; width: 200px; display: none;">
+                </div>
+                <div style="margin-top: 10px; font-size: 12px; color: #666;">
+                    💡 提示: 如果扫描不到设备，请尝试"扫描所有设备"模式，然后选择您的Sanag设备
+                </div>
+            </div>
+            
+            <div class="btn-group">
+                <button class="btn btn-primary" id="btnConnect" onclick="connectDevice()">
+                    🔍 扫描并连接
+                </button>
+                <button class="btn btn-secondary" id="btnDisconnect" onclick="disconnectDevice()" disabled>
+                    ❌ 断开连接
+                </button>
+                <button class="btn btn-secondary" id="btnGetVersion" onclick="getVersion()" disabled>
+                    📋 获取版本
+                </button>
+            </div>
+            
+            <div class="version-display" id="versionDisplay" style="display: none; margin-top: 20px;">
+                <div class="version-item">
+                    <div class="version-label">设备版本</div>
+                    <div class="version-value" id="deviceVersion">--</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 固件设置 -->
+        <div class="card">
+            <div class="card-title">
+                <span class="icon">📦</span>
+                固件设置
+            </div>
+            
+            <div class="file-selector">
+                <div class="file-input-wrapper">
+                    <button class="btn btn-secondary">📁 选择固件文件</button>
+                    <input type="file" id="firmwareFile" accept=".bin" onchange="selectFirmware(this)">
+                </div>
+                <div class="file-info" id="fileInfo" style="display: none;">
+                    <span class="file-icon">📄</span>
+                    <div class="file-details">
+                        <div class="file-name" id="fileName">--</div>
+                        <div class="file-size" id="fileSize">--</div>
+                        <div class="file-size" id="fileCRC" style="color: #667eea; font-weight: 500;">CRC: --</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="input-group">
+                <label>固件版本:</label>
+                <input type="number" id="firmwareVersion" value="1" min="1" placeholder="输入固件版本号">
+            </div>
+            
+            <div class="input-group">
+                <label>MTU大小:</label>
+                <input type="number" id="mtuSize" value="185" min="23" max="512" placeholder="MTU大小">
+            </div>
+        </div>
+        
+        <!-- OTA升级 -->
+        <div class="card">
+            <div class="card-title">
+                <span class="icon">🚀</span>
+                OTA升级
+            </div>
+            
+            <div class="btn-group">
+                <button class="btn btn-success" id="btnCheck" onclick="checkUpgrade()" disabled>
+                    ✅ 检查升级条件
+                </button>
+                <button class="btn btn-primary" id="btnStart" onclick="startOTA()" disabled>
+                    🚀 开始升级
+                </button>
+                <button class="btn btn-danger" id="btnAbort" onclick="abortOTA()" disabled>
+                    ⛔ 中断升级
+                </button>
+            </div>
+            
+            <!-- 进度显示 -->
+            <div class="progress-container" id="progressContainer" style="display: none;">
+                <div class="progress-header">
+                    <span class="progress-text" id="progressText">准备中...</span>
+                    <span class="progress-percent" id="progressPercent">0%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                </div>
+                
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value" id="statPackets">0 / 0</div>
+                        <div class="stat-label">数据包</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="statSpeed">-- KB/s</div>
+                        <div class="stat-label">速度/成功率</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="statTime">--</div>
+                        <div class="stat-label">已用时间</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="statResend">0</div>
+                        <div class="stat-label">重发次数</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="statResendRate">0%</div>
+                        <div class="stat-label">重发率</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="statInterval">10ms</div>
+                        <div class="stat-label">发包间隔</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 状态消息 -->
+            <div class="status-message info" id="statusMessage">
+                <span>ℹ️</span>
+                <span id="statusText">请先连接设备并选择固件文件</span>
+            </div>
+        </div>
+        
+        <!-- 日志 -->
+        <div class="card">
+            <div class="card-title">
+                <span class="icon">📝</span>
+                操作日志
+            </div>
+            <div class="log-container" id="logContainer">
+                <div class="log-entry">
+                    <span class="log-time">[系统]</span>
+                    <span class="log-info"> Sanag OTA Tool 已就绪</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============== 协议常量 ==============
+        const SERVICE_UUID = '0000faa0-0000-1000-8000-00805f9b34fb';
+        const WRITE_UUID = '0000faa1-0000-1000-8000-00805f9b34fb';
+        const NOTIFY_UUID = '0000faa2-0000-1000-8000-00805f9b34fb';
+
+        const HEADER_APP_TO_DEVICE = 0xAA;
+        const HEADER_DEVICE_TO_APP = 0xA5;
+
+        const CMD_VERSION_INFO = 0xA0;
+        const CMD_FACTORY_RESET = 0xA4;
+        const CMD_OTA_CHECK = 0xA6;
+        const CMD_OTA_START = 0xA7;
+        const CMD_OTA_DATA = 0xA8;
+        const CMD_OTA_COMPLETE = 0xA9;
+        const CMD_OTA_EXECUTE = 0xAA;
+        const CMD_OTA_EXCEPTION = 0xAB;
+        const CMD_OTA_ABORT = 0xAC;
+
+        const OTA_CHECK_REASONS = {
+            0x00: '可以升级',
+            0x01: '空间不足，升级文件过大',
+            0x02: 'TWS未连接，不允许OTA',
+            0x03: '正在执行其他操作',
+            0x04: '电量过低(<20%)',
+            0x05: '当前已是最新版本',
+            0x06: 'OTA协议版本不一致',
+            0x07: '其他原因'
+        };
+
+        const EXCEPTION_TYPES = {
+            0x00: '丢包重传APP不响应超时异常',
+            0x01: '非法异常数据',
+            0x02: '数据传输中断，等待超时',
+            0x03: '其他中断异常'
+        };
+
+        // ============== 全局状态 ==============
+        let device = null;
+        let server = null;
+        let service = null;
+        let writeCharacteristic = null;
+        let notifyCharacteristic = null;
+        let firmwareData = null;
+        let isUpgrading = false;
+        let abortFlag = false;
+        let packetSize = 180;
+        let currentStep = 0;
+
+        // 统计变量
+        let startTime = 0;
+        let transferredBytes = 0;
+        
+        // 传输统计
+        let statsTotalPackets = 0;      // 总包数
+        let statsSentPackets = 0;       // 已发送包数（不含重发）
+        let statsResendCount = 0;       // 重发次数
+        let statsSendErrors = 0;        // 发送错误次数
+        let statsDeviceNakCount = 0;    // 设备NAK次数（校验失败）
+        let statsCurrentInterval = 10;  // 当前发包间隔(ms)
+        let statsBatchSize = 10;        // 批量发送大小
+        
+        // 重传控制
+        let resendQueue = [];           // 重传队列
+        let deviceResponses = [];       // 设备响应缓存
+        let lastReceivedIndex = -1;     // 设备最后确认的index
+
+        // ============== 工具函数 ==============
+        /**
+         * 计算校验和（累加方式）
+         * 校验和 = 协议头 + 字段类型 + 数据长度值 + 数据域数据
+         * 当结果超过一个字节时，取后两位（即对256取模）
+         * 例如：A5 + 33 + 01 + 64 = 13D，校验和为 3D
+         */
+        function calculateChecksum(data) {
+            let sum = 0;
+            for (let i = 0; i < data.length; i++) {
+                sum += data[i];
+            }
+            return sum & 0xFF;  // 取低8位
+        }
+
+        function calculateCRC32(data) {
+            const crc32Table = new Uint32Array(256);
+            for (let i = 0; i < 256; i++) {
+                let c = i;
+                for (let j = 0; j < 8; j++) {
+                    c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+                }
+                crc32Table[i] = c;
+            }
+            
+            let crc = 0xFFFFFFFF;
+            for (let i = 0; i < data.length; i++) {
+                crc = crc32Table[(crc ^ data[i]) & 0xFF] ^ (crc >>> 8);
+            }
+            return (crc ^ 0xFFFFFFFF) >>> 0;
+        }
+
+        function buildPacket(cmd, data = new Uint8Array(0)) {
+            const packet = new Uint8Array(4 + data.length);
+            packet[0] = HEADER_APP_TO_DEVICE;
+            packet[1] = cmd;
+            packet[2] = data.length;
+            packet.set(data, 3);
+            packet[packet.length - 1] = calculateChecksum(packet.slice(0, -1));
+            return packet;
+        }
+
+        function buildVersionRequest() {
+            return buildPacket(CMD_VERSION_INFO, new Uint8Array([0x00]));
+        }
+
+        /**
+         * 构建固件升级检查请求包
+         * 数据域格式（大端序）：
+         * [0-1]: 目标软件版本（大端，如100 → 0x00 0x64）
+         * [2-3]: 协议版本（如V1.6 → 0x01 0x06）
+         * [4-7]: 固件总大小（大端，如10MB → 0x00 0xa0 0x00 0x00）
+         */
+        function buildOTACheck(version, protocolVer, fileSize) {
+            const data = new Uint8Array(8);
+            
+            // 软件版本（大端序）
+            data[0] = (version >> 8) & 0xFF;   // 高字节
+            data[1] = version & 0xFF;          // 低字节
+            
+            // 协议版本（直接两个字节）
+            data[2] = protocolVer[0];          // 主版本
+            data[3] = protocolVer[1];          // 次版本
+            
+            // 固件大小（大端序）
+            data[4] = (fileSize >> 24) & 0xFF; // 最高字节
+            data[5] = (fileSize >> 16) & 0xFF;
+            data[6] = (fileSize >> 8) & 0xFF;
+            data[7] = fileSize & 0xFF;         // 最低字节
+            
+            return buildPacket(CMD_OTA_CHECK, data);
+        }
+
+        /**
+         * 构建MTU协商请求包
+         * 数据域格式（大端序）：
+         * [0]: MTU高字节
+         * [1]: MTU低字节
+         * 例如：MTU=185 → 0x00 0xB9
+         */
+        function buildOTAStart(mtu) {
+            const data = new Uint8Array(2);
+            // 大端序：高字节在前
+            data[0] = (mtu >> 8) & 0xFF;   // 高字节
+            data[1] = mtu & 0xFF;          // 低字节
+            return buildPacket(CMD_OTA_START, data);
+        }
+
+        /**
+         * 构建固件升级数据包（特殊格式，不使用标准协议格式）
+         * 格式: [0xAA][0xA8][index(4,小端)][dataLen(2,小端)][数据(N)][CRC-32(4,小端)]
+         * 
+         * 根据协议文档V1.6：
+         * - Index: 4字节小端序（协议第103行）
+         * - DataLen: 2字节小端序（协议第104行）
+         * - CRC32: 4字节小端序（协议第106行）
+         * 示例：index=1000 → E8 03 00 00, dataLen=3 → 03 00
+         */
+        function buildOTADataPacket(index, payload) {
+            const dataLen = payload.length;
+            const crc = calculateCRC32(payload);
+            
+            // 固件传输数据包格式（特殊格式）:
+            // [协议头][命令][index(4)][dataLen(2)][数据][CRC-32(4)]
+            // 总长度 = 1 + 1 + 4 + 2 + dataLen + 4
+            const packet = new Uint8Array(2 + 4 + 2 + dataLen + 4);
+            
+            // 协议头
+            packet[0] = HEADER_APP_TO_DEVICE;  // 0xAA
+            
+            // 命令
+            packet[1] = CMD_OTA_DATA;  // 0xA8
+            
+            // Index (4 bytes, 小端序) - 协议要求小端
+            packet[2] = index & 0xFF;           // 最低字节
+            packet[3] = (index >> 8) & 0xFF;
+            packet[4] = (index >> 16) & 0xFF;
+            packet[5] = (index >> 24) & 0xFF;   // 最高字节
+            
+            // Data length (2 bytes, 小端序) - 协议要求小端
+            packet[6] = dataLen & 0xFF;         // 低字节
+            packet[7] = (dataLen >> 8) & 0xFF;  // 高字节
+            
+            // Payload - 从字节8开始
+            packet.set(payload, 8);
+            
+            // CRC-32 (4 bytes, 小端序) - 协议要求小端
+            const crcOffset = 8 + dataLen;
+            packet[crcOffset] = crc & 0xFF;             // 最低字节
+            packet[crcOffset + 1] = (crc >> 8) & 0xFF;
+            packet[crcOffset + 2] = (crc >> 16) & 0xFF;
+            packet[crcOffset + 3] = (crc >> 24) & 0xFF; // 最高字节
+            
+            return packet;
+        }
+
+        /**
+         * 构建固件升级传输完成包
+         * 数据域：文件总大小（4字节，大端序）
+         * 例如：10MB → 0x00 0xa0 0x00 0x00
+         */
+        function buildOTAComplete(totalSize) {
+            const data = new Uint8Array(4);
+            // 大端序
+            data[0] = (totalSize >> 24) & 0xFF; // 最高字节
+            data[1] = (totalSize >> 16) & 0xFF;
+            data[2] = (totalSize >> 8) & 0xFF;
+            data[3] = totalSize & 0xFF;         // 最低字节
+            const packet = buildPacket(CMD_OTA_COMPLETE, data);
+            log(`🔧 构建传输完成指令: 文件大小=${totalSize}, 数据=[${Array.from(data).map(b => b.toString(16).padStart(2, '0')).join(' ')}]`, 'info');
+            return packet;
+        }
+
+        /**
+         * 构建执行升级指令 (CMD = 0xAA)
+         * 格式: [0xAA][0xAA][0x01][0x00][CHKSUM]
+         * 注意：协议头和命令都是 0xAA！
+         */
+        function buildOTAExecute() {
+            const packet = buildPacket(CMD_OTA_EXECUTE, new Uint8Array([0x00]));
+            log(`🔧 构建执行升级指令: [${Array.from(packet).map(b => b.toString(16).padStart(2, '0')).join(' ')}]`, 'info');
+            return packet;
+        }
+
+        function buildOTAAbort(reason = 0x00) {
+            return buildPacket(CMD_OTA_ABORT, new Uint8Array([reason]));
+        }
+
+        function parsePacket(data) {
+            if (data.byteLength < 4) {
+                log(`⚠️ 数据包太短: ${data.byteLength} 字节`, 'warning');
+                return null;
+            }
+            
+            const result = {
+                header: data[0],
+                cmd: data[1],
+                length: data[2],
+                data: data.slice(3, 3 + data[2]),  // 使用length字段确定数据长度
+                checksum: data[data.length - 1],
+                rawData: data
+            };
+            
+            const expectedChecksum = calculateChecksum(data.slice(0, -1));
+            result.valid = expectedChecksum === result.checksum;
+            result.expectedChecksum = expectedChecksum;
+            
+            // 打印详细的解析信息
+            log(`📦 解析: header=0x${result.header.toString(16)}, cmd=0x${result.cmd.toString(16)}, len=${result.length}, checksum=0x${result.checksum.toString(16)}(期望:0x${expectedChecksum.toString(16)}), valid=${result.valid}`, 'info');
+            
+            return result;
+        }
+
+        function parseVersionResponse(data) {
+            const packet = parsePacket(data);
+            
+            // 详细错误日志
+            if (!packet) {
+                log('❌ 解析失败: 数据包为null', 'error');
+                return { version: 0, valid: false, error: '数据包为null' };
+            }
+            
+            if (!packet.valid) {
+                log(`❌ 解析失败: 校验和错误 (收到:0x${packet.checksum.toString(16)}, 期望:0x${packet.expectedChecksum.toString(16)})`, 'error');
+                return { version: 0, valid: false, error: `校验和错误` };
+            }
+            
+            if (packet.cmd !== CMD_VERSION_INFO) {
+                log(`❌ 解析失败: 命令不匹配 (收到:0x${packet.cmd.toString(16)}, 期望:0x${CMD_VERSION_INFO.toString(16)})`, 'error');
+                return { version: 0, valid: false, error: '命令不匹配' };
+            }
+            
+            if (packet.data.length < 2) {
+                log(`❌ 解析失败: 数据长度不足 (收到:${packet.data.length}, 需要:2)`, 'error');
+                return { version: 0, valid: false, error: '数据长度不足' };
+            }
+            
+            // 版本号使用大端序（Big Endian）
+            // data[3]是高字节, data[4]是低字节
+            // 例如：版本 100 → data[3]=0x00, data[4]=0x64
+            const version = (packet.data[0] << 8) | packet.data[1];
+            log(`✅ 版本解析成功: ${version} (0x${version.toString(16)})`, 'success');
+            return { version, valid: true };
+        }
+
+        function parseOTACheckResponse(data) {
+            const packet = parsePacket(data);
+            
+            if (!packet) {
+                log('❌ 升级检查解析失败: 数据包为null', 'error');
+                return { canUpgrade: false, reason: 0xFF, valid: false, error: '数据包为null' };
+            }
+            
+            if (!packet.valid) {
+                log(`❌ 升级检查解析失败: 校验和错误`, 'error');
+                return { canUpgrade: false, reason: 0xFF, valid: false, error: '校验和错误' };
+            }
+            
+            if (packet.cmd !== CMD_OTA_CHECK) {
+                log(`❌ 升级检查解析失败: 命令不匹配 (收到:0x${packet.cmd.toString(16)}, 期望:0x${CMD_OTA_CHECK.toString(16)})`, 'error');
+                return { canUpgrade: false, reason: 0xFF, valid: false, error: '命令不匹配' };
+            }
+            
+            if (packet.data.length >= 1) {
+                const reason = packet.data[0];
+                const reasonText = OTA_CHECK_REASONS[reason] || `未知(0x${reason.toString(16)})`;
+                log(`✅ 升级检查结果: ${reasonText}`, reason === 0x00 ? 'success' : 'warning');
+                return {
+                    canUpgrade: reason === 0x00,
+                    reason,
+                    valid: true
+                };
+            }
+            
+            return { canUpgrade: false, reason: 0xFF, valid: false, error: '数据长度不足' };
+        }
+
+        function parseOTAStartResponse(data) {
+            const packet = parsePacket(data);
+            
+            if (!packet) {
+                log('❌ MTU协商解析失败: 数据包为null', 'error');
+                return { packetSize: 0, valid: false, error: '数据包为null' };
+            }
+            
+            if (!packet.valid) {
+                log(`❌ MTU协商解析失败: 校验和错误`, 'error');
+                return { packetSize: 0, valid: false, error: '校验和错误' };
+            }
+            
+            if (packet.cmd !== CMD_OTA_START) {
+                log(`❌ MTU协商解析失败: 命令不匹配`, 'error');
+                return { packetSize: 0, valid: false, error: '命令不匹配' };
+            }
+            
+            if (packet.data.length >= 2) {
+                // 大端序：高字节在前
+                const packetSize = (packet.data[0] << 8) | packet.data[1];
+                log(`✅ MTU协商成功: OTA包大小=${packetSize}`, 'success');
+                return { packetSize, valid: true };
+            }
+            
+            return { packetSize: 0, valid: false, error: '数据长度不足' };
+        }
+
+        function parseOTACompleteResponse(data) {
+            const packet = parsePacket(data);
+            
+            if (!packet) {
+                log('❌ 传输完成解析失败: 数据包为null', 'error');
+                return { success: false, valid: false, error: '数据包为null' };
+            }
+            
+            if (!packet.valid) {
+                log(`❌ 传输完成解析失败: 校验和错误`, 'error');
+                return { success: false, valid: false, error: '校验和错误' };
+            }
+            
+            if (packet.cmd !== CMD_OTA_COMPLETE) {
+                log(`❌ 传输完成解析失败: 命令不匹配`, 'error');
+                return { success: false, valid: false, error: '命令不匹配' };
+            }
+            
+            if (packet.data.length >= 1) {
+                const success = packet.data[0] === 0x01;
+                log(`✅ 传输完成响应: ${success ? '成功' : '失败'}`, success ? 'success' : 'error');
+                return { success, valid: true };
+            }
+            
+            return { success: false, valid: false, error: '数据长度不足' };
+        }
+
+        function parseOTAExecuteResponse(data) {
+            const packet = parsePacket(data);
+            
+            if (!packet) {
+                log('❌ 执行升级解析失败: 数据包为null', 'error');
+                return { success: false, valid: false, error: '数据包为null' };
+            }
+            
+            if (!packet.valid) {
+                log(`❌ 执行升级解析失败: 校验和错误`, 'error');
+                return { success: false, valid: false, error: '校验和错误' };
+            }
+            
+            if (packet.cmd !== CMD_OTA_EXECUTE) {
+                log(`❌ 执行升级解析失败: 命令不匹配`, 'error');
+                return { success: false, valid: false, error: '命令不匹配' };
+            }
+            
+            if (packet.data.length >= 1) {
+                const success = packet.data[0] === 0x01;
+                log(`✅ 执行升级响应: ${success ? '成功' : '失败'}`, success ? 'success' : 'error');
+                return { success, valid: true };
+            }
+            
+            return { success: false, valid: false, error: '数据长度不足' };
+        }
+
+        function parseExceptionResponse(data) {
+            const packet = parsePacket(data);
+            if (!packet || !packet.valid) {
+                return { exceptionType: 0xFF, valid: false };
+            }
+            
+            if (packet.cmd === CMD_OTA_EXCEPTION && packet.data.length >= 1) {
+                return { exceptionType: packet.data[0], valid: true };
+            }
+            
+            return { exceptionType: 0xFF, valid: false };
+        }
+
+        // ============== UI工具函数 ==============
+        function log(message, type = 'info') {
+            const container = document.getElementById('logContainer');
+            const time = new Date().toLocaleTimeString();
+            
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.innerHTML = `<span class="log-time">[${time}]</span> <span class="log-${type}">${message}</span>`;
+            
+            container.appendChild(entry);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function setStatus(message, type = 'info') {
+            const statusMsg = document.getElementById('statusMessage');
+            const statusText = document.getElementById('statusText');
+            
+            statusMsg.className = `status-message ${type}`;
+            
+            const icons = {
+                info: 'ℹ️',
+                success: '✅',
+                error: '❌',
+                warning: '⚠️'
+            };
+            
+            statusText.textContent = message;
+            log(message, type);
+        }
+
+        function setStep(stepNum, state = 'active') {
+            for (let i = 1; i <= 5; i++) {
+                const step = document.getElementById(`step${i}`);
+                step.classList.remove('active', 'completed', 'error');
+                
+                if (i < stepNum) {
+                    step.classList.add('completed');
+                } else if (i === stepNum) {
+                    step.classList.add(state);
+                }
+            }
+        }
+
+        function updateProgress(current, total, message) {
+            const percent = Math.round((current / total) * 100);
+            document.getElementById('progressPercent').textContent = `${percent}%`;
+            document.getElementById('progressFill').style.width = `${percent}%`;
+            document.getElementById('progressText').textContent = message;
+            document.getElementById('statPackets').textContent = `${current} / ${total}`;
+            
+            if (startTime > 0) {
+                const elapsed = (Date.now() - startTime) / 1000;
+                const speed = (transferredBytes / 1024) / elapsed;
+                document.getElementById('statSpeed').textContent = `${speed.toFixed(1)} KB/s`;
+                document.getElementById('statTime').textContent = formatTime(elapsed);
+            }
+        }
+
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+        }
+
+        function enableButtons(buttons) {
+            const allButtons = ['btnConnect', 'btnDisconnect', 'btnGetVersion', 'btnCheck', 'btnStart', 'btnAbort'];
+            allButtons.forEach(btn => {
+                document.getElementById(btn).disabled = !buttons.includes(btn);
+            });
+        }
+
+        function updateScanOptions() {
+            const scanMode = document.querySelector('input[name="scanMode"]:checked').value;
+            const nameFilterInput = document.getElementById('deviceNameFilter');
+            
+            if (scanMode === 'name') {
+                nameFilterInput.style.display = 'block';
+            } else {
+                nameFilterInput.style.display = 'none';
+            }
+        }
+
+        // ============== BLE操作函数 ==============
+        async function connectDevice() {
+            if (!navigator.bluetooth) {
+                setStatus('您的浏览器不支持Web Bluetooth API', 'error');
+                return;
+            }
+
+            try {
+                const scanMode = document.querySelector('input[name="scanMode"]:checked').value;
+                let options;
+                
+                if (scanMode === 'name') {
+                    const namePrefix = document.getElementById('deviceNameFilter').value.trim();
+                    if (!namePrefix) {
+                        setStatus('请输入设备名称前缀', 'warning');
+                        return;
+                    }
+                    log(`正在扫描名称前缀为 "${namePrefix}" 的BLE设备...`, 'info');
+                    
+                    options = {
+                        filters: [{ namePrefix: namePrefix }],
+                        optionalServices: [SERVICE_UUID, WRITE_UUID, NOTIFY_UUID]
+                    };
+                } else {
+                    log('正在扫描所有BLE设备...', 'info');
+                    
+                    // 扫描所有设备
+                    options = {
+                        acceptAllDevices: true,
+                        optionalServices: [SERVICE_UUID, WRITE_UUID, NOTIFY_UUID]
+                    };
+                }
+                
+                device = await navigator.bluetooth.requestDevice(options);
+
+                // 打印设备信息（包含名称和地址）
+                const deviceName = device.name || 'Unknown';
+                const deviceId = device.id || 'N/A';
+                log(`发现设备: ${deviceName} [${deviceId}]`, 'success');
+                
+                device.addEventListener('gattserverdisconnected', onDisconnected);
+
+                log('正在连接GATT服务器...', 'info');
+                server = await device.gatt.connect();
+
+                log('正在获取OTA服务...', 'info');
+                service = await server.getPrimaryService(SERVICE_UUID);
+
+                log('正在获取特征值...', 'info');
+                writeCharacteristic = await service.getCharacteristic(WRITE_UUID);
+                notifyCharacteristic = await service.getCharacteristic(NOTIFY_UUID);
+
+                // 启用通知
+                await notifyCharacteristic.startNotifications();
+                notifyCharacteristic.addEventListener('characteristicvaluechanged', handleNotification);
+
+                // 更新UI
+                document.getElementById('deviceInfo').style.display = 'flex';
+                document.getElementById('deviceName').textContent = deviceName;
+                document.getElementById('deviceStatus').textContent = `地址: ${deviceId}`;
+                document.getElementById('connectionBadge').textContent = '已连接';
+                document.getElementById('connectionBadge').className = 'connection-badge connected';
+                
+                enableButtons(['btnDisconnect', 'btnGetVersion', 'btnCheck']);
+                setStatus('设备连接成功', 'success');
+                setStep(1, 'completed');
+                setStep(2, 'active');
+                
+            } catch (error) {
+                log(`连接失败: ${error.message}`, 'error');
+                
+                // 提供更详细的错误提示
+                let errorMsg = error.message;
+                if (error.name === 'NotFoundError') {
+                    errorMsg = '未找到匹配的设备，请确保设备已开启蓝牙并在附近';
+                } else if (error.name === 'SecurityError') {
+                    errorMsg = '蓝牙权限被拒绝，请在浏览器设置中允许蓝牙访问';
+                } else if (error.name === 'NetworkError') {
+                    errorMsg = '设备连接失败，请确保设备已开启并在范围内';
+                } else if (error.message.includes('GATT Server')) {
+                    errorMsg = '无法连接GATT服务器，设备可能不支持或正在被其他应用使用';
+                } else if (error.message.includes('Service not found')) {
+                    errorMsg = '未找到OTA服务，该设备可能不是Sanag OTA设备';
+                }
+                
+                setStatus(`连接失败: ${errorMsg}`, 'error');
+            }
+        }
+
+        function onDisconnected() {
+            log('设备已断开连接', 'warning');
+            document.getElementById('deviceName').textContent = '未连接';
+            document.getElementById('deviceStatus').textContent = '连接已断开';
+            document.getElementById('connectionBadge').textContent = '未连接';
+            document.getElementById('connectionBadge').className = 'connection-badge disconnected';
+            document.getElementById('versionDisplay').style.display = 'none';
+            
+            enableButtons(['btnConnect']);
+            isUpgrading = false;
+            setStep(1, 'active');
+        }
+
+        async function disconnectDevice() {
+            if (device && device.gatt.connected) {
+                device.gatt.disconnect();
+            }
+        }
+
+        // 处理设备通知
+        function handleNotification(event) {
+            const value = event.target.value;
+            const data = new Uint8Array(value.buffer);
+            
+            const hexStr = Array.from(data).map(b => b.toString(16).padStart(2, '0')).join(' ');
+            
+            // 检查是否是丢包重传请求 (设备发送 0xA8 响应)
+            if (data.length >= 7 && data[0] === HEADER_DEVICE_TO_APP && data[1] === CMD_OTA_DATA && data[2] === 0x04) {
+                // Index (4 bytes, little-endian)
+                const lostIndex = data[3] | (data[4] << 8) | (data[5] << 16) | (data[6] << 24);
+                log(`🔄 设备请求重传: 包#${lostIndex} [${hexStr}]`, 'warning');
+                statsDeviceNakCount++;
+                
+                // 添加到重传队列（避免重复）
+                if (!resendQueue.includes(lostIndex)) {
+                    resendQueue.push(lostIndex);
+                }
+                return;
+            }
+            
+            // 检查是否是异常上报
+            if (data.length >= 2 && data[1] === CMD_OTA_EXCEPTION) {
+                const result = parseExceptionResponse(data);
+                if (result.valid) {
+                    const exceptionText = EXCEPTION_TYPES[result.exceptionType] || `未知异常(0x${result.exceptionType.toString(16)})`;
+                    setStatus(`设备上报异常: ${exceptionText}`, 'error');
+                    log(`❌ 异常类型: ${exceptionText} [${hexStr}]`, 'error');
+                    isUpgrading = false;
+                    setStep(currentStep, 'error');
+                    enableButtons(['btnDisconnect', 'btnGetVersion', 'btnCheck']);
+                }
+                return;
+            }
+            
+            // 其他响应，打印日志
+            log(`⬅️ 收到: [${hexStr}]`, 'info');
+            
+            // 缓存设备响应
+            deviceResponses.push({ time: Date.now(), data: data });
+        }
+
+        // 获取命令名称
+        function getCommandName(cmd) {
+            const names = {
+                0xA0: '版本查询',
+                0xA4: '恢复出厂',
+                0xA6: '升级检查',
+                0xA7: 'MTU协商',
+                0xA8: '数据传输',
+                0xA9: '传输完成',
+                0xAA: '执行升级',
+                0xAB: '异常上报',
+                0xAC: '中断升级'
+            };
+            return names[cmd] || `未知(0x${cmd.toString(16).toUpperCase()})`;
+        }
+
+        // 打印发送的命令
+        function logSentCommand(command, description = '') {
+            const data = new Uint8Array(command.buffer || command);
+            const hexStr = Array.from(data).map(b => b.toString(16).padStart(2, '0')).join(' ');
+            const cmdName = data.length >= 2 ? getCommandName(data[1]) : '';
+            log(`➡️ 发送: [${hexStr}] ${cmdName} ${description}`, 'info');
+        }
+
+        async function sendCommand(command) {
+            if (!writeCharacteristic) {
+                throw new Error('设备未连接');
+            }
+            logSentCommand(command);
+            await writeCharacteristic.writeValue(command);
+        }
+
+        async function sendCommandWithResponse(command, timeout = 5000) {
+            return new Promise(async (resolve, reject) => {
+                const timeoutId = setTimeout(() => {
+                    notifyCharacteristic.removeEventListener('characteristicvaluechanged', handler);
+                    reject(new Error('响应超时'));
+                }, timeout);
+
+                const handler = (event) => {
+                    clearTimeout(timeoutId);
+                    const value = event.target.value;
+                    const data = new Uint8Array(value.buffer);
+                    resolve(data);
+                };
+
+                notifyCharacteristic.addEventListener('characteristicvaluechanged', handler);
+                
+                try {
+                    logSentCommand(command);
+                    await writeCharacteristic.writeValue(command);
+                } catch (error) {
+                    clearTimeout(timeoutId);
+                    notifyCharacteristic.removeEventListener('characteristicvaluechanged', handler);
+                    reject(error);
+                }
+            });
+        }
+
+        async function getVersion() {
+            try {
+                setStatus('正在获取设备版本...', 'info');
+                
+                const command = buildVersionRequest();
+                const response = await sendCommandWithResponse(command);
+                
+                const result = parseVersionResponse(response);
+                
+                if (result.valid) {
+                    document.getElementById('deviceVersion').textContent = result.version;
+                    document.getElementById('versionDisplay').style.display = 'flex';
+                    setStatus(`设备版本: ${result.version}`, 'success');
+                } else {
+                    setStatus('获取版本失败', 'error');
+                }
+            } catch (error) {
+                setStatus(`获取版本失败: ${error.message}`, 'error');
+            }
+        }
+
+        function selectFirmware(input) {
+            const file = input.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    firmwareData = new Uint8Array(e.target.result);
+                    
+                    // 计算文件CRC32校验
+                    const crc = calculateCRC32(firmwareData);
+                    const crcHex = crc.toString(16).toUpperCase().padStart(8, '0');
+                    
+                    // 简单的BIN文件验证
+                    const validation = validateFirmware(firmwareData);
+                    
+                    document.getElementById('fileInfo').style.display = 'flex';
+                    document.getElementById('fileName').textContent = file.name;
+                    document.getElementById('fileSize').textContent = formatFileSize(firmwareData.length);
+                    document.getElementById('fileCRC').textContent = `CRC-32: 0x${crcHex}`;
+                    
+                    // 显示CRC校验结果
+                    log(`固件文件: ${file.name}`, 'info');
+                    log(`文件大小: ${firmwareData.length} 字节`, 'info');
+                    log(`CRC-32: 0x${crcHex}`, 'info');
+                    
+                    if (validation.valid) {
+                        setStatus(`固件已加载: ${file.name} (${formatFileSize(firmwareData.length)}) CRC: 0x${crcHex}`, 'success');
+                        log('固件文件校验通过', 'success');
+                    } else {
+                        setStatus(`固件文件可能无效: ${validation.message}`, 'warning');
+                        log(`⚠️ 固件警告: ${validation.message}`, 'warning');
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            }
+        }
+
+        // 验证固件文件的基本有效性
+        function validateFirmware(data) {
+            // 检查文件大小
+            if (data.length < 16) {
+                return { valid: false, message: '文件太小，可能不是有效的固件' };
+            }
+            
+            if (data.length > 10 * 1024 * 1024) { // 10MB
+                return { valid: false, message: '文件过大(>10MB)，请确认文件正确' };
+            }
+            
+            // 检查是否全为0x00或0xFF（空数据）
+            let allZeros = true;
+            let allOnes = true;
+            for (let i = 0; i < Math.min(256, data.length); i++) {
+                if (data[i] !== 0x00) allZeros = false;
+                if (data[i] !== 0xFF) allOnes = false;
+            }
+            
+            if (allZeros || allOnes) {
+                return { valid: false, message: '文件内容为空或全填充，请确认文件正确' };
+            }
+            
+            // 检查文件扩展名（仅提示）
+            // 基本验证通过
+            return { valid: true, message: '基本校验通过' };
+        }
+
+        async function checkUpgrade() {
+            if (!firmwareData) {
+                setStatus('请先选择固件文件', 'warning');
+                return;
+            }
+
+            try {
+                setStatus('正在检查升级条件...', 'info');
+                
+                const version = parseInt(document.getElementById('firmwareVersion').value) || 1;
+                const protocolVer = [1, 6];
+                
+                const command = buildOTACheck(version, protocolVer, firmwareData.length);
+                const response = await sendCommandWithResponse(command);
+                
+                const result = parseOTACheckResponse(response);
+                
+                if (result.valid) {
+                    if (result.canUpgrade) {
+                        setStatus('设备可以升级', 'success');
+                        enableButtons(['btnDisconnect', 'btnGetVersion', 'btnCheck', 'btnStart']);
+                        setStep(2, 'completed');
+                        setStep(3, 'active');
+                    } else {
+                        const reason = OTA_CHECK_REASONS[result.reason] || `未知原因(0x${result.reason.toString(16)})`;
+                        setStatus(`设备不可升级: ${reason}`, 'error');
+                        setStep(2, 'error');
+                    }
+                } else {
+                    setStatus('检查升级条件失败', 'error');
+                }
+            } catch (error) {
+                setStatus(`检查失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function startOTA() {
+            if (!firmwareData) {
+                setStatus('请先选择固件文件', 'warning');
+                return;
+            }
+
+            if (isUpgrading) {
+                return;
+            }
+
+            isUpgrading = true;
+            abortFlag = false;
+            
+            enableButtons(['btnAbort']);
+            
+            document.getElementById('progressContainer').style.display = 'block';
+            
+            try {
+                // MTU协商
+                setStatus('正在进行MTU协商...', 'info');
+                const mtu = parseInt(document.getElementById('mtuSize').value) || 185;
+                const mtuCommand = buildOTAStart(mtu);
+                const mtuResponse = await sendCommandWithResponse(mtuCommand);
+                const mtuResult = parseOTAStartResponse(mtuResponse);
+                
+                if (mtuResult.valid) {
+                    packetSize = mtuResult.packetSize;
+                    log(`OTA包大小: ${packetSize} 字节`, 'success');
+                } else {
+                    packetSize = Math.min(mtu - 5, 180);
+                    log(`使用默认包大小: ${packetSize} 字节`, 'warning');
+                }
+                
+                setStep(2, 'completed');
+                setStep(3, 'active');
+                
+                // 开始传输固件
+                await transferFirmware();
+                
+            } catch (error) {
+                setStatus(`升级失败: ${error.message}`, 'error');
+                isUpgrading = false;
+                enableButtons(['btnDisconnect', 'btnGetVersion', 'btnCheck', 'btnStart']);
+                setStep(3, 'error');
+            }
+        }
+
+        async function transferFirmware() {
+            const totalPackets = Math.ceil(firmwareData.length / packetSize);
+            
+            // 初始化统计
+            startTime = Date.now();
+            transferredBytes = 0;
+            statsTotalPackets = totalPackets;
+            statsSentPackets = 0;
+            statsResendCount = 0;
+            statsSendErrors = 0;
+            statsDeviceNakCount = 0;
+            statsCurrentInterval = 10;  // 初始间隔10ms
+            statsBatchSize = 10;        // 每批发送10包
+            resendQueue = [];
+            deviceResponses = [];
+            
+            setStatus(`开始传输固件，共 ${totalPackets} 包`, 'info');
+            log(`开始传输，总大小: ${formatFileSize(firmwareData.length)}, 分包数: ${totalPackets}`, 'info');
+            log(`OTA包大小: ${packetSize} 字节`, 'info');
+            log(`包格式: [AA][A8][Index(4字节LE)][DataLen(2字节LE)][Payload][CRC32(4字节LE)]`, 'info');
+            log(`初始发包间隔: ${statsCurrentInterval}ms, 批量大小: ${statsBatchSize}`, 'info');
+            
+            let currentIndex = 0;
+            let batchCount = 0;
+            
+            // 发送单个数据包
+            async function sendPacket(index, isResend = false) {
+                const start = index * packetSize;
+                const end = Math.min(start + packetSize, firmwareData.length);
+                const payload = firmwareData.slice(start, end);
+                const packet = buildOTADataPacket(index, payload);
+                const payloadCrc = calculateCRC32(payload);
+                
+                // 详细日志（仅前5包、重发包或每100包）
+                if (index < 5 || isResend || index % 100 === 0) {
+                    const hexHeader = Array.from(packet.slice(0, 8)).map(b => b.toString(16).padStart(2, '0')).join(' ');
+                    const hexPayload = Array.from(payload.slice(0, 8)).map(b => b.toString(16).padStart(2, '0')).join(' ');
+                    const prefix = isResend ? '🔄 重发' : '📦';
+                    log(`${prefix} #${index}: DataLen=${payload.length}, CRC=0x${payloadCrc.toString(16).toUpperCase().padStart(8, '0')}`, isResend ? 'warning' : 'info');
+                    if (index < 3 || isResend) {
+                        log(`   包头: [${hexHeader}], 总长=${packet.length}字节`, 'info');
+                    }
+                }
+                
+                try {
+                    await writeCharacteristic.writeValueWithoutResponse(packet);
+                    if (!isResend) {
+                        statsSentPackets++;
+                        transferredBytes += payload.length;
+                    } else {
+                        statsResendCount++;
+                    }
+                    return true;
+                } catch (error) {
+                    statsSendErrors++;
+                    log(`❌ 包#${index}发送失败: ${error.message}`, 'error');
+                    return false;
+                }
+            }
+            
+            // 处理重传队列
+            async function processResendQueue() {
+                if (resendQueue.length === 0) return;
+                
+                // 按index排序
+                resendQueue.sort((a, b) => a - b);
+                
+                // 处理所有重传请求
+                while (resendQueue.length > 0) {
+                    const lostIndex = resendQueue.shift();
+                    log(`🔄 重传包#${lostIndex}`, 'warning');
+                    
+                    const success = await sendPacket(lostIndex, true);
+                    if (!success) {
+                        // 发送失败，放回队列稍后重试
+                        resendQueue.push(lostIndex);
+                    }
+                    
+                    // 重传时使用较长间隔
+                    await new Promise(resolve => setTimeout(resolve, statsCurrentInterval * 2));
+                }
+            }
+            
+            // 动态调整发包间隔
+            function adjustInterval() {
+                // 计算最近的成功率
+                const totalAttempts = statsSentPackets + statsResendCount + statsSendErrors;
+                if (totalAttempts < 10) return;
+                
+                const failRate = (statsResendCount + statsSendErrors + statsDeviceNakCount) / totalAttempts;
+                
+                if (failRate > 0.05) {
+                    // 失败率超过5%，增加间隔
+                    statsCurrentInterval = Math.min(statsCurrentInterval + 5, 50);
+                    log(`⚠️ 失败率 ${(failRate * 100).toFixed(1)}%，增加间隔到 ${statsCurrentInterval}ms`, 'warning');
+                } else if (failRate < 0.01 && statsCurrentInterval > 5) {
+                    // 失败率低于1%，可以稍微加快
+                    statsCurrentInterval = Math.max(statsCurrentInterval - 2, 5);
+                }
+            }
+            
+            // 更新统计显示
+            function updateStats() {
+                const totalAttempts = statsSentPackets + statsResendCount;
+                const successRate = totalAttempts > 0 ? ((statsSentPackets / totalAttempts) * 100).toFixed(1) : 100;
+                const resendRate = totalAttempts > 0 ? ((statsResendCount / totalAttempts) * 100).toFixed(2) : 0;
+                
+                // 计算速度
+                if (startTime > 0) {
+                    const elapsed = (Date.now() - startTime) / 1000;
+                    const speed = (transferredBytes / 1024) / elapsed;
+                    document.getElementById('statSpeed').textContent = `${speed.toFixed(1)} KB/s`;
+                    document.getElementById('statTime').textContent = formatTime(elapsed);
+                }
+                
+                // 更新重发统计
+                document.getElementById('statResend').textContent = statsResendCount;
+                document.getElementById('statResendRate').textContent = `${resendRate}%`;
+                document.getElementById('statInterval').textContent = `${statsCurrentInterval}ms`;
+                
+                // 每100包打印统计
+                if (statsSentPackets % 100 === 0 && statsSentPackets > 0) {
+                    log(`📊 统计: 已发送${statsSentPackets}包, 重发${statsResendCount}次, 成功率${successRate}%, 重发率${resendRate}%`, 'info');
+                }
+            }
+            
+            // 主传输循环
+            while (currentIndex < totalPackets) {
+                if (abortFlag) {
+                    setStatus('升级已中断', 'warning');
+                    isUpgrading = false;
+                    enableButtons(['btnDisconnect', 'btnGetVersion', 'btnCheck', 'btnStart']);
+                    setStep(3, 'error');
+                    return;
+                }
+                
+                // 批量发送
+                const batchEnd = Math.min(currentIndex + statsBatchSize, totalPackets);
+                
+                for (let i = currentIndex; i < batchEnd; i++) {
+                    const success = await sendPacket(i);
+                    if (!success) {
+                        // 发送失败，等待后重试当前包
+                        await new Promise(resolve => setTimeout(resolve, 50));
+                        i--;  // 重试
+                        continue;
+                    }
+                    
+                    // 包间延迟
+                    await new Promise(resolve => setTimeout(resolve, statsCurrentInterval));
+                }
+                
+                currentIndex = batchEnd;
+                batchCount++;
+                
+                // 每批结束后检查重传队列
+                await processResendQueue();
+                
+                // 动态调整间隔
+                if (batchCount % 5 === 0) {
+                    adjustInterval();
+                }
+                
+                // 更新进度
+                if (currentIndex % 10 === 0 || currentIndex === totalPackets) {
+                    updateProgress(currentIndex, totalPackets, `传输中... 成功率待计算`);
+                    updateStats();
+                }
+            }
+            
+            // 最后检查是否还有重传
+            let resendAttempts = 0;
+            while (resendQueue.length > 0 && resendAttempts < 3) {
+                await processResendQueue();
+                resendAttempts++;
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            
+            // 打印最终统计
+            const finalTotal = statsSentPackets + statsResendCount;
+            const finalSuccessRate = finalTotal > 0 ? ((statsSentPackets / finalTotal) * 100).toFixed(1) : 100;
+            const finalResendRate = finalTotal > 0 ? ((statsResendCount / finalTotal) * 100).toFixed(2) : 0;
+            
+            log(`📊 最终统计: 总发送${statsSentPackets}包, 重发${statsResendCount}次, 发送错误${statsSendErrors}次, 设备NAK${statsDeviceNakCount}次`, 'info');
+            log(`📊 成功率: ${finalSuccessRate}%, 重发率: ${finalResendRate}%`, 'info');
+            
+            setStatus('固件传输完成，发送完成通知...', 'info');
+            setStep(3, 'completed');
+            setStep(4, 'active');
+            
+            // 发送传输完成通知 (0xA9)
+            log(`📤 准备发送传输完成通知...`, 'info');
+            const completeCommand = buildOTAComplete(firmwareData.length);
+            const completeResponse = await sendCommandWithResponse(completeCommand, 10000);
+            const completeResult = parseOTACompleteResponse(completeResponse);
+            
+            log(`📥 传输完成响应: valid=${completeResult.valid}, success=${completeResult.success}`, 'info');
+            
+            if (completeResult.valid && completeResult.success) {
+                setStatus('设备确认传输完成', 'success');
+                
+                // 执行升级 (0xAA)
+                log(`📤 准备发送执行升级指令...`, 'info');
+                setStatus('请求设备执行升级...', 'info');
+                const executeCommand = buildOTAExecute();
+                const executeResponse = await sendCommandWithResponse(executeCommand, 10000);
+                const executeResult = parseOTAExecuteResponse(executeResponse);
+                
+                log(`📥 执行升级响应: valid=${executeResult.valid}, success=${executeResult.success}`, 'info');
+                
+                if (executeResult.valid && executeResult.success) {
+                    setStep(4, 'completed');
+                    setStep(5, 'active');
+                    setStatus('OTA升级成功！设备将重启', 'success');
+                    log('🎉 OTA升级成功，设备即将重启', 'success');
+                } else {
+                    setStatus('设备无法执行升级', 'error');
+                    log(`❌ 执行升级失败: ${executeResult.error || '设备返回失败'}`, 'error');
+                    setStep(4, 'error');
+                }
+            } else {
+                setStatus('设备确认传输失败', 'error');
+                log(`❌ 传输完成确认失败: ${completeResult.error || '设备返回失败'}`, 'error');
+                setStep(3, 'error');
+            }
+            
+            isUpgrading = false;
+            enableButtons(['btnConnect']);
+        }
+
+        async function abortOTA() {
+            if (!isUpgrading) return;
+            
+            abortFlag = true;
+            setStatus('正在中断升级...', 'warning');
+            
+            try {
+                const command = buildOTAAbort(0x00);
+                await sendCommand(command);
+                setStatus('升级已中断', 'warning');
+            } catch (error) {
+                setStatus(`中断失败: ${error.message}`, 'error');
+            }
+        }
+
+        // ============== 初始化 ==============
+        document.addEventListener('DOMContentLoaded', () => {
+            const compatContent = document.getElementById('compatibilityContent');
+            
+            // 检查浏览器兼容性
+            if (!navigator.bluetooth) {
+                compatContent.innerHTML = `
+                    <strong>❌ 浏览器不支持 Web Bluetooth API</strong>
+                    <p style="margin-top: 10px;">请使用 Chrome、Edge 或 Opera 浏览器访问本页面。</p>
+                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ffb74d;">
+                        <strong>📱 移动端注意事项:</strong>
+                        <ul style="margin-top: 5px; padding-left: 20px;">
+                            <li>iOS Safari 不支持 Web Bluetooth</li>
+                            <li>Android 需要 Chrome 浏览器</li>
+                            <li>需要 HTTPS 或 localhost 环境</li>
+                        </ul>
+                    </div>
+                `;
+                setStatus('您的浏览器不支持Web Bluetooth API，请使用Chrome、Edge或Opera浏览器', 'error');
+            } else {
+                compatContent.innerHTML = `
+                    <strong>✅ 浏览器支持 Web Bluetooth API</strong>
+                    <p style="margin-top: 10px;">您可以正常使用本工具进行OTA升级。</p>
+                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ffb74d;">
+                        <strong>📱 使用提示:</strong>
+                        <ul style="margin-top: 5px; padding-left: 20px;">
+                            <li>确保设备蓝牙已开启</li>
+                            <li>Android 12+ 需要授予位置权限</li>
+                            <li>如果扫描不到设备，请选择"扫描所有设备"</li>
+                            <li>选择设备时请确认是您的 Sanag 设备</li>
+                        </ul>
+                    </div>
+                `;
+                document.getElementById('compatibilityNotice').style.background = '#e8f5e9';
+                document.getElementById('compatibilityNotice').style.borderColor = '#4caf50';
+                log('Web Bluetooth API 可用', 'success');
+            }
+            
+            setStep(1, 'active');
+        });
+    </script>
+</body>
+</html>
