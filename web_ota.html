@@ -825,7 +825,7 @@
         let statsResendCount = 0;       // 重发次数
         let statsSendErrors = 0;        // 发送错误次数
         let statsDeviceNakCount = 0;    // 设备NAK次数（校验失败）
-        let statsCurrentInterval = 10;  // 当前发包间隔(ms)
+        let statsCurrentInterval = 20;  // 当前发包间隔(ms)
         let statsBatchSize = 10;        // 批量发送大小
         
         // 重传控制
@@ -923,13 +923,12 @@
 
         /**
          * 构建固件升级数据包（特殊格式，不使用标准协议格式）
-         * 格式: [0xAA][0xA8][index(4,小端)][dataLen(2,小端)][数据(N)][CRC-32(4,小端)]
+         * 格式: [0xAA][0xA8][index(4,大端)][dataLen(2,大端)][数据(N)][CRC-32(4,小端)]
          * 
-         * 根据协议文档V1.6：
-         * - Index: 4字节小端序（协议第103行）
-         * - DataLen: 2字节小端序（协议第104行）
-         * - CRC32: 4字节小端序（协议第106行）
-         * 示例：index=1000 → E8 03 00 00, dataLen=3 → 03 00
+         * 与桌面端 protocol.py 保持一致：
+         * - Index: 4字节大端序（高字节在前）
+         * - DataLen: 2字节大端序（高字节在前）
+         * - CRC32: 4字节小端序（低字节在前）
          */
         function buildOTADataPacket(index, payload) {
             const dataLen = payload.length;
@@ -946,20 +945,20 @@
             // 命令
             packet[1] = CMD_OTA_DATA;  // 0xA8
             
-            // Index (4 bytes, 小端序) - 协议要求小端
-            packet[2] = index & 0xFF;           // 最低字节
-            packet[3] = (index >> 8) & 0xFF;
-            packet[4] = (index >> 16) & 0xFF;
-            packet[5] = (index >> 24) & 0xFF;   // 最高字节
+            // Index (4 bytes, 大端序) - 高字节在前
+            packet[2] = (index >> 24) & 0xFF;   // 最高字节
+            packet[3] = (index >> 16) & 0xFF;
+            packet[4] = (index >> 8) & 0xFF;
+            packet[5] = index & 0xFF;           // 最低字节
             
-            // Data length (2 bytes, 小端序) - 协议要求小端
-            packet[6] = dataLen & 0xFF;         // 低字节
-            packet[7] = (dataLen >> 8) & 0xFF;  // 高字节
+            // Data length (2 bytes, 大端序) - 高字节在前
+            packet[6] = (dataLen >> 8) & 0xFF;  // 高字节
+            packet[7] = dataLen & 0xFF;         // 低字节
             
             // Payload - 从字节8开始
             packet.set(payload, 8);
             
-            // CRC-32 (4 bytes, 小端序) - 协议要求小端
+            // CRC-32 (4 bytes, 小端序) - 低字节在前
             const crcOffset = 8 + dataLen;
             packet[crcOffset] = crc & 0xFF;             // 最低字节
             packet[crcOffset + 1] = (crc >> 8) & 0xFF;
@@ -1390,8 +1389,8 @@
             
             // 检查是否是丢包重传请求 (设备发送 0xA8 响应)
             if (data.length >= 7 && data[0] === HEADER_DEVICE_TO_APP && data[1] === CMD_OTA_DATA && data[2] === 0x04) {
-                // Index (4 bytes, little-endian)
-                const lostIndex = data[3] | (data[4] << 8) | (data[5] << 16) | (data[6] << 24);
+                // Index (4 bytes, 大端序) - 高字节在前
+                const lostIndex = (data[3] << 24) | (data[4] << 16) | (data[5] << 8) | data[6];
                 log(`🔄 设备请求重传: 包#${lostIndex} [${hexStr}]`, 'warning');
                 statsDeviceNakCount++;
                 
@@ -1661,7 +1660,7 @@
             statsResendCount = 0;
             statsSendErrors = 0;
             statsDeviceNakCount = 0;
-            statsCurrentInterval = 10;  // 初始间隔10ms
+            statsCurrentInterval = 10;  // 初始间隔20ms
             statsBatchSize = 10;        // 每批发送10包
             resendQueue = [];
             deviceResponses = [];
@@ -1745,9 +1744,9 @@
                     // 失败率超过5%，增加间隔
                     statsCurrentInterval = Math.min(statsCurrentInterval + 5, 50);
                     log(`⚠️ 失败率 ${(failRate * 100).toFixed(1)}%，增加间隔到 ${statsCurrentInterval}ms`, 'warning');
-                } else if (failRate < 0.01 && statsCurrentInterval > 5) {
-                    // 失败率低于1%，可以稍微加快
-                    statsCurrentInterval = Math.max(statsCurrentInterval - 2, 5);
+                } else if (failRate < 0.01 && statsCurrentInterval > 10) {
+                    // 失败率低于1%，可以稍微加快（但不低于20ms）
+                    statsCurrentInterval = Math.max(statsCurrentInterval - 2, 20);
                 }
             }
             
